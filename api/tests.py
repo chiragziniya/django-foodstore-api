@@ -17,6 +17,7 @@ class MenuAPITestCase(APITestCase):
         self.inventory_threshold = Inventory.objects.create(menu_item=self.menu_item_inactive, quantity=3)
 
     def test_item_with_zero_quantity(self):
+        """Test: Menu item with zero quantity shows out_of_stock=True and almost_gone=False"""
         url = reverse('store-menu', kwargs={'store_id': self.store.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -26,6 +27,7 @@ class MenuAPITestCase(APITestCase):
         self.assertFalse(active_item['almost_gone'])
 
     def test_item_with_quantity_within_threshold(self):
+        """Test: Menu item with quantity 1-5 shows almost_gone=True (threshold business rule)"""
         # Change to active
         self.menu_item_inactive.is_active = True
         self.menu_item_inactive.save()
@@ -38,6 +40,7 @@ class MenuAPITestCase(APITestCase):
         self.assertTrue(threshold_item['almost_gone'])
 
     def test_inactive_item(self):
+        """Test: Inactive menu items are included but show is_available=False"""
         url = reverse('store-menu', kwargs={'store_id': self.store.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -47,6 +50,7 @@ class MenuAPITestCase(APITestCase):
         self.assertTrue(inactive_item['almost_gone'])  # quantity=3 is within threshold
 
     def test_query_optimization(self):
+        """Test: Menu API uses select_related to prevent N+1 queries (1 query total)"""
         # Ensure select_related is used, check queries
         from django.test.utils import override_settings
         from django.db import connection
@@ -62,11 +66,13 @@ class InventoryAPITestCase(APITestCase):
         )
 
     def test_negative_quantity_fails(self):
+        """Test: Inventory update rejects negative quantities with 400 Bad Request"""
         url = reverse('inventory-update', kwargs={'menu_item_id': self.menu_item.id})
         response = self.client.patch(url, {'quantity': -1}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_inventory_creation_if_missing(self):
+        """Test: Inventory update auto-creates inventory record if it doesn't exist"""
         url = reverse('inventory-update', kwargs={'menu_item_id': self.menu_item.id})
         response = self.client.patch(url, {'quantity': 10}, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -76,6 +82,7 @@ class InventoryAPITestCase(APITestCase):
         self.assertFalse(response.data['almost_gone'])
 
     def test_correct_flag_calculation(self):
+        """Test: Inventory update correctly calculates almost_gone flag for threshold quantity"""
         # Create inventory
         inventory = Inventory.objects.create(menu_item=self.menu_item, quantity=3)
         url = reverse('inventory-update', kwargs={'menu_item_id': self.menu_item.id})
@@ -97,6 +104,7 @@ class OrderAPITestCase(APITestCase):
         self.inventory2 = Inventory.objects.create(menu_item=self.menu_item2, quantity=5)
 
     def test_successful_order_reduces_quantity(self):
+        """Test: Successful order reduces inventory quantities for all ordered items"""
         url = reverse('place-order')
         data = {
             'store_id': self.store.id,
@@ -113,6 +121,7 @@ class OrderAPITestCase(APITestCase):
         self.assertEqual(self.inventory2.quantity, 4)
 
     def test_insufficient_quantity_returns_400(self):
+        """Test: Order fails with 400 error when requesting more than available inventory"""
         url = reverse('place-order')
         data = {
             'store_id': self.store.id,
@@ -124,6 +133,7 @@ class OrderAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_inactive_item_fails(self):
+        """Test: Order fails with 400 error when attempting to order inactive menu items"""
         self.menu_item1.is_active = False
         self.menu_item1.save()
         url = reverse('place-order')
@@ -137,6 +147,7 @@ class OrderAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_entire_order_rolls_back_if_one_item_invalid(self):
+        """Test: Atomic transaction - entire order rolls back if any item fails validation"""
         url = reverse('place-order')
         data = {
             'store_id': self.store.id,

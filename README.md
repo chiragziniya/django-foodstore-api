@@ -98,6 +98,10 @@ Returns all menu items for a specific store with availability and stock status.
 ]
 ```
 
+**Example Screenshot:**
+
+![Menu List Success](screenshots/menu_list_success.png)
+
 ### 2. Update Inventory
 ```
 PATCH /inventory/{menu_item_id}/
@@ -119,6 +123,14 @@ Updates the inventory quantity for a menu item.
   "almost_gone": false
 }
 ```
+
+**Example Screenshots:**
+
+**Valid Update:**
+![Inventory Update Valid](screenshots/inventory_update_valid.png)
+
+**Negative Quantity Validation:**
+![Inventory Update Negative](screenshots/inventory_update_negative.png)
 
 ### 3. Place Order
 ```
@@ -146,11 +158,48 @@ Places an order and deducts inventory atomically.
 }
 ```
 
+**Example Screenshots:**
+
+**Successful Order:**
+![Order Success](screenshots/order_success.png)
+
+**Insufficient Inventory Error:**
+![Order Insufficient Quantity](screenshots/order_insufficient_quantity.png)
+
 ## Running Tests
 
+### Run all tests (simple output)
 ```bash
 python manage.py test
 ```
+
+### Run all tests (verbose output with test descriptions)
+```bash
+python manage.py test -v 2
+```
+
+**Verbose output shows:**
+- Test class and method names
+- Descriptive test scenarios for each test
+- Detailed database operations
+- Clear pass/fail status for each test
+
+**Test Coverage (11 tests):**
+- ✅ Menu API - Zero quantity handling
+- ✅ Menu API - Almost gone threshold (1-5 items)
+- ✅ Menu API - Inactive item filtering
+- ✅ Menu API - N+1 query optimization
+- ✅ Inventory API - Negative quantity validation
+- ✅ Inventory API - Auto-creation of inventory
+- ✅ Inventory API - Flag calculations
+- ✅ Order API - Successful order processing
+- ✅ Order API - Insufficient inventory handling
+- ✅ Order API - Inactive item validation
+- ✅ Order API - Atomic transaction rollback
+
+**Test Command Output Example:**
+
+![Python Test Command Output](screenshots/python_test_command_output.png)
 
 ## Business Rules
 
